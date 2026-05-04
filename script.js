@@ -1,9 +1,10 @@
-const playlistSongs = document.getElementById("playlist-songs")
-const playButton = document.getElementById("play")
-const pauseButton = document.getElementById("pause")
-const nextButton = document.getElementById("next")
-const previousButton = document.getElementById("previous")
-
+const playlistSongs = document.getElementById("playlist-songs");
+const playButton = document.getElementById("play");
+const pauseButton = document.getElementById("pause");
+const nextButton = document.getElementById("next");
+const previousButton = document.getElementById("previous");
+const playingSong = document.getElementById("player-song-title");
+const songArtist = document.getElementById("player-song-artist");
 const allSongs = [
   {
     id: 0,
@@ -17,7 +18,7 @@ const allSongs = [
     title: "Can't Stay Down",
     artist: "Quincy Larson",
     duration: "4:15",
-    src: "https://cdn.freecodecamp.org/curriculum/js-music-player/cant-stay-down.mp3",
+    src: "https://cdn.freecodecamp.org/curriculum/js-music-player/can't-stay-down.mp3",
   },
   {
     id: 2,
@@ -77,41 +78,102 @@ const allSongs = [
   },
 ];
 
-
 const audio = new Audio();
+
 const userData = {
-    songs: allSongs,
-    currentSong: null,
-    songCurrentTime: 0
+  songs: allSongs,
+  currentSong: null,
+  songCurrentTime: 0,
 }
 
-function playSong(id){
-    const song = userData.songs.find(song => song.id === id)
-    audio.src = song.src;
-    audio.title = song.title;
+const playSong = (id, start=true) => {
+  const song = userData.songs.find((song) => song.id === id);
+  audio.src = song.src;
+  audio.title = song.title;
+  if (userData.currentSong === null || start) {
+    audio.currentTime = 0
+  } else {
+    audio.currentTime = userData.songCurrentTime;
+  }
+  userData.currentSong = song;
+  playButton.classList.add("playing");
 
-    if(userData.currentSong === null){
-        audio.currentTime = 0;
-    }else {
-        audio.currentTime = userData.songCurrentTime;
-    }
-
-    playButton.classList.add("playing");
-    userData.currentSong = song;
-    audio.play();
+  highlightCurrentSong();
+  audio.play();
 }
+
+const pauseSong = () => {
+  userData.songCurrentTime = audio.currentTime;
+  playButton.classList.remove("playing");
+  audio.pause();
+}
+
+const getCurrentSongIndex = () => userData.songs.indexOf(userData.currentSong);
+
+const getNextSong = () => userData.songs[getCurrentSongIndex() + 1];
+
+const getPreviousSong = () => userData.songs[getCurrentSongIndex() - 1];
+
+const playPreviousSong = () => {
+  if (userData.currentSong === null) return;
+  const previousSong = getPreviousSong();
+  if (previousSong) {
+    playSong(previousSong.id);
+  } else {
+    playSong(userData.songs[0].id);
+  }
+};
+
+const playNextSong = () => {
+  if (userData.currentSong === null) {
+    playSong(userData.songs[0].id);
+    return
+  }
+  const nextSong = getNextSong();
+  if (nextSong) {
+    playSong(nextSong.id);
+  } else {
+    userData.currentSong = null;
+    userData.songCurrentTime = 0;
+    pauseSong();
+  }
+}
+
+const setPlayerDisplay = () => {
+  playingSong.textContent = userData.currentSong.title ? userData.currentSong.title : "" ;
+  songArtist.textContent = userData.currentSong.artist;
+}
+
+const highlightCurrentSong = () => {
+  const previousCurrentSong = document.querySelector('.playlist-song[aria-current="true"]');
+  previousCurrentSong?.removeAttribute("aria-current");
+  const songToHighlight = document.getElementById(
+    `song-${userData.currentSong?.id}`
+  );
+  
+  songToHighlight?.setAttribute("aria-current", "true");
+};
 
 playButton.addEventListener("click", () => {
-  if(userData.currentSong === null) {
+  if (userData.currentSong === null) {
     playSong(userData.songs[0].id);
-  } else{
-    playSong(userData.currentSong.id);
+  } else {
+    playSong(userData.currentSong.id, false);
   }
 });
 
 const songs = document.querySelectorAll(".playlist-song");
-songs.forEach(song => {
-    song.firstElementChild.addEventListener("click", () => {
-        song.getAttribute("data-id");
-    });
+
+songs.forEach((song) => {
+  const id = song.getAttribute("id").slice(5);
+  const songBtn = song.querySelector("button");
+  songBtn.addEventListener("click", () => {
+      playSong(Number(id));
+  })
 })
+
+pauseButton.addEventListener("click", pauseSong);
+
+nextButton.addEventListener("click", playNextSong);
+
+previousButton.addEventListener("click", playPreviousSong);
